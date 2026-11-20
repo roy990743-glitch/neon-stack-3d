@@ -1,0 +1,671 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#070913">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Neon Stack 3D</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #070913;
+            color: #ffffff;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: manipulation;
+            position: relative;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .hud {
+            position: absolute;
+            top: 24px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .score-val {
+            font-size: 64px;
+            font-weight: 900;
+            line-height: 1;
+            text-shadow: 0 4px 25px rgba(56, 189, 248, 0.5);
+            letter-spacing: -1px;
+        }
+        .combo-badge {
+            margin-top: 8px;
+            padding: 4px 14px;
+            border-radius: 999px;
+            background: rgba(251, 191, 36, 0.2);
+            border: 1px solid rgba(251, 191, 36, 0.6);
+            color: #fde047;
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.15s ease;
+        }
+        .combo-badge.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+        .sound-btn {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            z-index: 15;
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #38bdf8;
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(5, 7, 18, 0.78);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            padding: 20px;
+        }
+        .overlay.hidden {
+            display: none;
+        }
+        .card {
+            background: rgba(15, 23, 42, 0.94);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            border-radius: 28px;
+            padding: 32px 24px;
+            max-width: 360px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75);
+        }
+        .icon-box {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 14px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #0ea5e9, #8b5cf6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            box-shadow: 0 0 25px rgba(14, 165, 233, 0.5);
+        }
+        .title {
+            font-size: 30px;
+            font-weight: 900;
+            background: linear-gradient(to right, #38bdf8, #e879f9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #cbd5e1;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 22px;
+        }
+        .stats-row {
+            display: flex;
+            justify-content: space-around;
+            background: rgba(30, 41, 59, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 18px;
+            padding: 14px;
+            margin-bottom: 22px;
+        }
+        .stats-row.hidden {
+            display: none;
+        }
+        .stat-lbl {
+            font-size: 11px;
+            color: #94a3b8;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .stat-num {
+            font-size: 26px;
+            font-weight: 900;
+            color: #38bdf8;
+        }
+        .stat-num.best {
+            color: #fbbf24;
+        }
+        .play-btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 18px;
+            background: linear-gradient(to right, #0ea5e9, #6366f1, #d946ef);
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.55);
+            transition: transform 0.1s ease;
+        }
+        .play-btn:active {
+            transform: scale(0.96);
+        }
+        .tap-hint {
+            position: absolute;
+            bottom: 36px;
+            width: 100%;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.55);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .tap-hint.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <button id="soundBtn" class="sound-btn" aria-label="Toggle Sound">🔊</button>
+
+    <div class="hud">
+        <div id="scoreDisplay" class="score-val">0</div>
+        <div id="comboBadge" class="combo-badge">🔥 PERFECT x2</div>
+    </div>
+
+    <div id="tapHint" class="tap-hint hidden">TAP SCREEN TO PLACE BLOCK</div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="modalOverlay" class="overlay">
+        <div class="card">
+            <div class="icon-box">🧊</div>
+            <h1 id="modalTitle" class="title">NEON STACK 3D</h1>
+            <p id="modalSub" class="subtitle">
+                Tap at the exact right moment to stack glowing 3D neon blocks and build the tallest tower!
+            </p>
+
+            <div id="statsRow" class="stats-row hidden">
+                <div>
+                    <div class="stat-lbl">SCORE</div>
+                    <div id="finalScore" class="stat-num">0</div>
+                </div>
+                <div style="width:1px; background:rgba(255,255,255,0.1)"></div>
+                <div>
+                    <div class="stat-lbl">BEST SCORE</div>
+                    <div id="bestScore" class="stat-num best">0</div>
+                </div>
+            </div>
+
+            <button id="playBtn" class="play-btn">PLAY NOW 🚀</button>
+        </div>
+    </div>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(() => {});
+            });
+        }
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const comboBadge = document.getElementById('comboBadge');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalSub = document.getElementById('modalSub');
+        const statsRow = document.getElementById('statsRow');
+        const finalScoreEl = document.getElementById('finalScore');
+        const bestScoreEl = document.getElementById('bestScore');
+        const playBtn = document.getElementById('playBtn');
+        const soundBtn = document.getElementById('soundBtn');
+        const tapHint = document.getElementById('tapHint');
+
+        let W = 0, H = 0;
+        function resize() {
+            W = canvas.width = window.innerWidth;
+            H = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        let audioCtx = null;
+        let soundOn = true;
+        function initAudio() {
+            if (!audioCtx) {
+                const AC = window.AudioContext || window.webkitAudioContext;
+                if (AC) audioCtx = new AC();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function playPlaceSound(combo) {
+            if (!soundOn || !audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                const baseFreq = 261.63 * Math.pow(1.06, Math.min(combo, 24));
+                osc.type = combo > 0 ? 'triangle' : 'sine';
+                osc.frequency.setValueAtTime(baseFreq, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.15, audioCtx.currentTime + 0.14);
+                gain.gain.setValueAtTime(0.22, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.16);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.16);
+            } catch (e) {}
+        }
+
+        function playGameOverSound() {
+            if (!soundOn || !audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(55, audioCtx.currentTime + 0.45);
+                gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.45);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.45);
+            } catch (e) {}
+        }
+
+        let gameState = 'MENU';
+        let score = 0;
+        let bestScore = parseInt(localStorage.getItem('neonStackBest')) || 0;
+        let combo = 0;
+
+        const BLOCK_HEIGHT = 26;
+        const INITIAL_SIZE = 160;
+        const MOVE_RANGE = 210;
+        const PERFECT_TOLERANCE = 9;
+
+        let stack = [];
+        let fallingPieces = [];
+        let ripples = [];
+        let activeBlock = null;
+        let cameraY = 0;
+        let targetCameraY = 0;
+        let baseHue = 195;
+
+        function isoProject(x, y, z) {
+            const isoX = (x - z) * 0.866;
+            const isoY = (x + z) * 0.5 - y;
+            return {
+                x: W / 2 + isoX,
+                y: H * 0.65 + isoY + cameraY
+            };
+        }
+
+        function drawIsoBlock(b) {
+            const { x, y, z, w, d, h, hue } = b;
+            const topColor = `hsl(${hue}, 88%, 62%)`;
+            const leftColor = `hsl(${hue}, 82%, 44%)`;
+            const rightColor = `hsl(${hue}, 85%, 32%)`;
+            const strokeColor = `hsla(${hue}, 100%, 82%, 0.45)`;
+
+            const pTopBack = isoProject(x, y + h, z);
+            const pTopRight = isoProject(x + w, y + h, z);
+            const pTopFront = isoProject(x + w, y + h, z + d);
+            const pTopLeft = isoProject(x, y + h, z + d);
+
+            const pBotRight = isoProject(x + w, y, z);
+            const pBotFront = isoProject(x + w, y, z + d);
+            const pBotLeft = isoProject(x, y, z + d);
+
+            ctx.fillStyle = leftColor;
+            ctx.beginPath();
+            ctx.moveTo(pTopLeft.x, pTopLeft.y);
+            ctx.lineTo(pTopFront.x, pTopFront.y);
+            ctx.lineTo(pBotFront.x, pBotFront.y);
+            ctx.lineTo(pBotLeft.x, pBotLeft.y);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = rightColor;
+            ctx.beginPath();
+            ctx.moveTo(pTopFront.x, pTopFront.y);
+            ctx.lineTo(pTopRight.x, pTopRight.y);
+            ctx.lineTo(pBotRight.x, pBotRight.y);
+            ctx.lineTo(pBotFront.x, pBotFront.y);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = topColor;
+            ctx.beginPath();
+            ctx.moveTo(pTopBack.x, pTopBack.y);
+            ctx.lineTo(pTopRight.x, pTopRight.y);
+            ctx.lineTo(pTopFront.x, pTopFront.y);
+            ctx.lineTo(pTopLeft.x, pTopLeft.y);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
+        }
+
+        function spawnNextBlock() {
+            const prev = stack[stack.length - 1];
+            const level = stack.length;
+            const axis = level % 2 === 1 ? 'x' : 'z';
+            const speed = Math.min(460, 210 + level * 6.5);
+            const hue = (baseHue + level * 9) % 360;
+
+            activeBlock = {
+                x: axis === 'x' ? -MOVE_RANGE : prev.x,
+                y: prev.y + BLOCK_HEIGHT,
+                z: axis === 'z' ? -MOVE_RANGE : prev.z,
+                w: prev.w,
+                d: prev.d,
+                h: BLOCK_HEIGHT,
+                hue: hue,
+                axis: axis,
+                dir: 1,
+                speed: speed
+            };
+        }
+
+        function startGame() {
+            initAudio();
+            score = 0;
+            combo = 0;
+            stack = [];
+            fallingPieces = [];
+            ripples = [];
+            cameraY = 0;
+            targetCameraY = 0;
+            baseHue = Math.floor(Math.random() * 360);
+
+            scoreDisplay.textContent = '0';
+            comboBadge.classList.remove('show');
+            modalOverlay.classList.add('hidden');
+            tapHint.classList.remove('hidden');
+
+            stack.push({
+                x: -INITIAL_SIZE / 2,
+                y: -BLOCK_HEIGHT * 4,
+                z: -INITIAL_SIZE / 2,
+                w: INITIAL_SIZE,
+                d: INITIAL_SIZE,
+                h: BLOCK_HEIGHT * 5,
+                hue: baseHue
+            });
+
+            spawnNextBlock();
+            gameState = 'PLAYING';
+        }
+
+        function placeBlock() {
+            if (gameState !== 'PLAYING' || !activeBlock) return;
+
+            const prev = stack[stack.length - 1];
+            const curr = activeBlock;
+            const axis = curr.axis;
+
+            const delta = axis === 'x' ? (curr.x - prev.x) : (curr.z - prev.z);
+            const absDelta = Math.abs(delta);
+            const maxDim = axis === 'x' ? prev.w : prev.d;
+
+            if (absDelta >= maxDim) {
+                fallingPieces.push({ ...curr, vy: 0, rot: 0 });
+                activeBlock = null;
+                triggerGameOver();
+                return;
+            }
+
+            if (absDelta <= PERFECT_TOLERANCE) {
+                curr.x = prev.x;
+                curr.z = prev.z;
+                combo++;
+
+                if (combo >= 5) {
+                    const grow = 10;
+                    if (axis === 'x' && curr.w < INITIAL_SIZE) {
+                        curr.w = Math.min(INITIAL_SIZE, curr.w + grow);
+                        curr.x -= grow / 2;
+                    } else if (axis === 'z' && curr.d < INITIAL_SIZE) {
+                        curr.d = Math.min(INITIAL_SIZE, curr.d + grow);
+                        curr.z -= grow / 2;
+                    }
+                }
+
+                ripples.push({
+                    x: curr.x,
+                    y: curr.y + curr.h,
+                    z: curr.z,
+                    w: curr.w,
+                    d: curr.d,
+                    alpha: 0.9,
+                    expand: 0
+                });
+
+                if (combo >= 2) {
+                    comboBadge.textContent = `🔥 PERFECT x${combo}`;
+                    comboBadge.classList.add('show');
+                }
+            } else {
+                combo = 0;
+                comboBadge.classList.remove('show');
+
+                if (axis === 'x') {
+                    const overlapW = prev.w - absDelta;
+                    const cutW = absDelta;
+                    const cutX = delta > 0 ? (curr.x + overlapW) : curr.x;
+                    curr.x = delta > 0 ? curr.x : prev.x;
+                    curr.w = overlapW;
+
+                    fallingPieces.push({
+                        x: cutX, y: curr.y, z: curr.z,
+                        w: cutW, d: curr.d, h: curr.h,
+                        hue: curr.hue, vy: 0
+                    });
+                } else {
+                    const overlapD = prev.d - absDelta;
+                    const cutD = absDelta;
+                    const cutZ = delta > 0 ? (curr.z + overlapD) : curr.z;
+                    curr.z = delta > 0 ? curr.z : prev.z;
+                    curr.d = overlapD;
+
+                    fallingPieces.push({
+                        x: curr.x, y: curr.y, z: cutZ,
+                        w: curr.w, d: cutD, h: curr.h,
+                        hue: curr.hue, vy: 0
+                    });
+                }
+            }
+
+            stack.push(curr);
+            score++;
+            scoreDisplay.textContent = score;
+            playPlaceSound(combo);
+
+            targetCameraY = (stack.length - 1) * BLOCK_HEIGHT;
+            spawnNextBlock();
+        }
+
+        function triggerGameOver() {
+            gameState = 'GAMEOVER';
+            tapHint.classList.add('hidden');
+            comboBadge.classList.remove('show');
+            playGameOverSound();
+
+            if (score > bestScore) {
+                bestScore = score;
+                localStorage.setItem('neonStackBest', bestScore);
+            }
+
+            modalTitle.textContent = 'GAME OVER';
+            modalSub.textContent = 'Great run! Tap below to beat your high score.';
+            statsRow.classList.remove('hidden');
+            finalScoreEl.textContent = score;
+            bestScoreEl.textContent = bestScore;
+            playBtn.textContent = 'PLAY AGAIN 🔄';
+
+            setTimeout(() => {
+                modalOverlay.classList.remove('hidden');
+            }, 500);
+        }
+
+        let lastTime = performance.now();
+        function loop(now) {
+            requestAnimationFrame(loop);
+            const dt = Math.min((now - lastTime) / 1000, 0.05);
+            lastTime = now;
+
+            const bgHue = (baseHue + score * 3) % 360;
+            const grad = ctx.createLinearGradient(0, 0, 0, H);
+            grad.addColorStop(0, `hsl(${bgHue}, 45%, 8%)`);
+            grad.addColorStop(1, `hsl(${(bgHue + 40) % 360}, 55%, 14%)`);
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, W, H);
+
+            if (gameState === 'PLAYING' && activeBlock) {
+                const b = activeBlock;
+                if (b.axis === 'x') {
+                    b.x += b.dir * b.speed * dt;
+                    if (b.x > MOVE_RANGE) { b.x = MOVE_RANGE; b.dir = -1; }
+                    if (b.x < -MOVE_RANGE) { b.x = -MOVE_RANGE; b.dir = 1; }
+                } else {
+                    b.z += b.dir * b.speed * dt;
+                    if (b.z > MOVE_RANGE) { b.z = MOVE_RANGE; b.dir = -1; }
+                    if (b.z < -MOVE_RANGE) { b.z = -MOVE_RANGE; b.dir = 1; }
+                }
+            }
+
+            cameraY += (targetCameraY - cameraY) * 8 * dt;
+
+            const startIdx = Math.max(0, stack.length - 22);
+            for (let i = startIdx; i < stack.length; i++) {
+                drawIsoBlock(stack[i]);
+            }
+
+            for (let i = ripples.length - 1; i >= 0; i--) {
+                const r = ripples[i];
+                r.expand += 65 * dt;
+                r.alpha -= 1.8 * dt;
+                if (r.alpha <= 0) {
+                    ripples.splice(i, 1);
+                    continue;
+                }
+                const e = r.expand;
+                const p1 = isoProject(r.x - e, r.y, r.z - e);
+                const p2 = isoProject(r.x + r.w + e, r.y, r.z - e);
+                const p3 = isoProject(r.x + r.w + e, r.y, r.z + r.d + e);
+                const p4 = isoProject(r.x - e, r.y, r.z + r.d + e);
+
+                ctx.strokeStyle = `rgba(255, 255, 255, ${r.alpha})`;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.lineTo(p3.x, p3.y);
+                ctx.lineTo(p4.x, p4.y);
+                ctx.closePath();
+                ctx.stroke();
+            }
+
+            if (activeBlock) {
+                drawIsoBlock(activeBlock);
+            }
+
+            for (let i = fallingPieces.length - 1; i >= 0; i--) {
+                const fp = fallingPieces[i];
+                fp.vy -= 950 * dt;
+                fp.y += fp.vy * dt;
+                drawIsoBlock(fp);
+                if (fp.y + cameraY < -H) {
+                    fallingPieces.splice(i, 1);
+                }
+            }
+        }
+
+        function handleTap(e) {
+            if (e.target === soundBtn || e.target === playBtn) return;
+            if (gameState === 'PLAYING') {
+                e.preventDefault();
+                placeBlock();
+            }
+        }
+
+        window.addEventListener('touchstart', handleTap, { passive: false });
+        window.addEventListener('mousedown', handleTap);
+        window.addEventListener('keydown', e => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (gameState === 'PLAYING') placeBlock();
+                else startGame();
+            }
+        });
+
+        playBtn.addEventListener('click', startGame);
+        soundBtn.addEventListener('click', () => {
+            soundOn = !soundOn;
+            soundBtn.textContent = soundOn ? '🔊' : '🔇';
+        });
+
+        window.onload = () => {
+            stack.push({
+                x: -INITIAL_SIZE / 2,
+                y: -BLOCK_HEIGHT * 4,
+                z: -INITIAL_SIZE / 2,
+                w: INITIAL_SIZE,
+                d: INITIAL_SIZE,
+                h: BLOCK_HEIGHT * 5,
+                hue: 195
+            });
+            for (let i = 1; i <= 5; i++) {
+                stack.push({
+                    x: -INITIAL_SIZE / 2,
+                    y: -BLOCK_HEIGHT * 4 + i * BLOCK_HEIGHT,
+                    z: -INITIAL_SIZE / 2,
+                    w: INITIAL_SIZE,
+                    d: INITIAL_SIZE,
+                    h: BLOCK_HEIGHT,
+                    hue: 195 + i * 12
+                });
+            }
+            targetCameraY = 5 * BLOCK_HEIGHT;
+            cameraY = targetCameraY;
+            requestAnimationFrame(loop);
+        };
+    </script>
+</body>
+</html>
+
