@@ -1,0 +1,25 @@
+{
+  "name": "Neon Stack 3D: Tower Builder",
+  "short_name": "Neon Stack 3D",
+  "description": "Tap to stack glowing 3D neon blocks and build the tallest tower!",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#070913",
+  "theme_color": "#070913",
+  "categories": ["games", "arcade", "casual"],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
